@@ -1,0 +1,201 @@
+In this Scenario, we will not use the product repository as in README for showing the correct execution of our pipeline but will create new repository product2 (with the same product as for "product" repository) where we will show how user should manipulate and manage the pipeline(change, create) and the product.  
+
+As recommendation, run the Scenarios in order. 
+
+Remark: There is also a video tutorial for these Scenarios where the author do manually these scenario one by one. URL: https://drive.google.com/file/d/1cjR9c2ZyBw9NVZVK5kQoTjB1cvhobMGX/view?usp=sharing
+
+Don't hesitate to take a look in case of a problem or misunderstanding. 
+
+# Scenario 1
+
+## Goal: Creation of a git repository for our Product and do the initial commit 
+
+## Pre-conditions
+- Gitlab is up and running (All runners also) 
+- Able to access to the gitlab as a root
+
+## Main Success Scenario
+1. Log into the Gitlab as root user 
+2. Go into Your Projects and create a new blank project by clicking on "New project" button and set as name "product2". Then, click "Create project". 
+3. Go into project local repository and execute the instructions for pushing an existing folder. These instructions can be found on the page which is displayed after the creation of the project. 
+
+Example of instructions, to be executed on our local machine: 
+
+Execute before: rm -rf .git
+
+cd existing_folder
+git init
+git remote add origin http://192.168.33.9/gitlab/root/product2.git
+git add .
+git commit -m "Initial commit"
+git push -u origin master
+
+## Notes 
+- By executing last instruction "git push -u origin master", you push our project in git repository. 
+
+# Scenario 2
+
+## Goal: Creation of a simple pipeline for building the Product in git repository 
+
+## Pre-conditions
+- Gitlab is up and running (All runners also) 
+- Have Product in our git repository (as done for Scenario 1) 
+
+## Main Success Scenario
+1. Go into Projects -> Your project -> Pipelines -> CI/CD -> Editor 
+2. Create a new .gitlab-ci.yml file by clicking on "Create new CI/CD pipeline"
+3. Paste the following code: 
+
+image: maven:latest
+
+stages:
+  - build
+  - package
+  - deploy
+
+cache:
+  paths:
+    - target/
+
+build_app:
+  stage: build
+  script:
+    - mvn compile
+
+package_app:
+  stage: package 
+  script:
+    - mvn package
+
+deploy_app:
+    stage: deploy
+    script:
+    - echo "Deploy review app"
+    artifacts:
+        name: "my-app"
+        paths:
+        - target/*.war
+
+4. Wait until all 3 stages finish the execution and are all passed. 
+
+## Notes 
+- You just create a simple pipeline which allow to compile, package and obtain a binary of our product. 
+
+#Scenario 3
+
+## Goal: Pull the last version of product in git repository 
+
+ 
+## Pre-conditions
+- Gitlab is up and running  
+- Have Product in our git repository (as done for Scenario 1) 
+- Simple pipeline from Scenario 2 is already created and successfully passed 
+
+## Main Success Scenario
+1. Open terminal and go into Product folder 
+2. In this directory, do the pull as follow: 
+git pull
+
+# Nates 
+- If there exists any changes done previously init repository, you will have these changes locally  
+ 
+
+# Scenario 4
+
+## Goal: Make change to the product and push to git repository for executing the pipeline 
+
+## Pre-conditions
+- Gitlab is up and running  
+- Have Product in our git repository (as done for Scenario 1) 
+- Simple pipeline from Scenario 2 is already created and successfully passed 
+
+## Main Success Scenario
+1. Go into the Product -> src -> main -> ... -> controller and open WelcomeController.java  
+2. Replace defaultValue = "Strange" by defaultValue = "Person"
+3. Pull changes from git repository by: git pull 
+4. Commit changes done in 2. by: git commit -a -m "Change controller.java file"
+5. Push changes to the gitlab repository: git push -u origin master
+6. Wait until the pipeline finished 
+
+## Notes 
+- You just did what any developer does when he tries to commit and push the code to remote git repository
+- In case of problem such that "compile fail at stage 1", rerun the whole pipeline should work. 
+
+#Scenario 5 
+
+## Goal: Access the deployed product in tomcat in production environment 
+
+## Pre-conditions
+- Gitlab is up and running  
+- Have Product in our git repository (as done for Scenario 1) 
+- The whole pipeline is running as described in README file (with 8 stages) 
+- stage-vm is running 
+- prod-vm is running 
+- Changes done for Scenario 4 should be discard. So correct to the change from defaultValue = "Person" to defaultValue = "Stranger" in WelcomeController.java. 
+
+## Main Success Scenario
+1. Make sure that WelcomeController.java has defaultValue = "Stranger" ( because can fail the acceptance test). 
+If not, commit then git pull and push to any pipeline. 
+2. Run the whole pipeline again by accessing CI/CD Editor and commit changes (for whole pipeline, not simplified as in Scenario 2)
+3. Wait until all 8 stages finish successfully 
+4. Go and check if product is running in tomcat with following url: http://192.168.33.7:8080/controller/welcome?name=John
+5.(Optional/Problem) In case you can not access tomcat at 192.168.33.7:8080. Restart tomcat 
+sudo /opt/tomcat/bin/shutdown.sh
+sudo /opt/tomcat/bin/startup.sh
+6.(Optional/Problem) do again steps 2. to 3. 
+
+#Scenario 6 
+
+## Goal: RollBack to previous state 
+
+## Pre-conditions
+- Gitlab is up and running  
+- Have Product in our git repository (as done for Scenario 1) 
+- The whole pipeline is running as described in README file (with 8 stages) 
+- stage-vm is running 
+- prod-vm is running 
+- You should have at least 2 commits where you have a commit that is not last and which passed previously 
+
+## Main Success Scenario
+1. Go into CI/CD -> Pipelines 
+2. Click on commit message under "master - numbers" of the commit to which you want to revert. Example of commit message: "Update .gitlab-ci.yml file"
+3. Go in Options (right top corner) and click "Revert"
+4. Click on "Create merge request"
+5. You should see a new pipeline running 
+6. Wait until the end of the pipeline and check if everything passed successfully 
+
+#Scenario 7 
+
+## Goal: Download artifact produced by our pipeline 
+
+## Pre-conditions
+- Gitlab is up and running  
+- Have Product in our git repository (as done for Scenario 1) 
+- The whole pipeline is running as described in README file (with 8 stages) 
+- stage-vm is running 
+- prod-vm is running 
+
+## Main Success Scenario
+1. Rerun the pipeline (Any pipeline from before) by going into CI/CD -> Editor, click "Commit changes" 
+2. A new pipeline should start. Wait until the end of execution 
+3. In the CI/CD -> Pipelines, find our last pipeline and the right click on the button with 3 vertical dots and download the artifacts. 
+
+#Scenario 8 
+
+## Goal: Check the difference between files executed in different pipelines 
+
+
+## Pre-conditions
+- Gitlab is up and running  
+- Have Product in our git repository (as done for Scenario 1) 
+- The whole pipeline is running as described in README file (with 8 stages) 
+- stage-vm is running 
+- prod-vm is running 
+- two different pipelines successfully executed. This means that the content of product repository should be different for theses two pipelines. 
+
+## Main Success Scenario
+1.In the CI/CD -> Pipelines, find actual different pipeline  
+2. Click on the commit message 
+3. Observe what changes in the new pipeline with respect to previous one 
+
+

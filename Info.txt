@@ -1,0 +1,8 @@
+In this folder, you can find Product and the Pipeline folders. 
+
+Product folder contains the Java based web project developed in springboot. 
+
+Pipeline folder contains all the information for creating the pipeline including the 
+README.txt and Scenarios.txt. 
+
+Please look first at README.txt for creation of pipeline which then will allow you to look  and execute Scenarios. 

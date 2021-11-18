@@ -1,0 +1,43 @@
+# -*- mode: ruby -*-
+#
+# vi: set ft=ruby :
+# vim: ts=2
+
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+ 
+  config.vm.box = "ubuntu/xenial64"
+  config.vm.hostname = "prod-vm"
+  config.vm.box_download_insecure = false 
+  
+  ENV['LC_ALL']="en_US.UTF-8"
+  
+
+  config.vm.network :private_network, ip: "192.168.33.7"
+
+  #config.vm.synced_folder "../../data", "/vagrant_data"
+  config.vm.synced_folder "scripts", "/vagrant_scripts"
+
+  config.vm.provider :virtualbox do |vb|
+   
+    vb.customize [
+      'modifyvm', :id,
+      '--natdnshostresolver1', 'on',
+      '--memory', '1192',
+      '--cpus', '1'
+    ]
+    
+  end  
+  
+  config.vm.provision "shell", inline: <<-SHELL
+     	sudo apt-get update
+     	echo "Install default Java and OpenJDK"
+     	sudo apt install default-jre -y
+     	sudo apt-get install openjdk-8-jdk -y
+   	SHELL
+   
+  config.vm.provision "shell",
+    inline: "/bin/sh /vagrant_scripts/setup-tomcat.sh"
+
+end
